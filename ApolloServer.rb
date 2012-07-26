@@ -7,7 +7,6 @@ require 'fileutils'
    end
 
    def receive_data data
-     send_data ">>>you sent: #{data}"
      request_params = data.split("#")
 
      if request_params.length != 2
@@ -23,7 +22,7 @@ require 'fileutils'
        return
      end
 
-     command_params = request_params[1].split("")
+     command_params = request_params[1].split(" ")
      if command_params.length != 2
        send_data "Invalid request"
        close_connection_after_writing
@@ -37,7 +36,15 @@ require 'fileutils'
      end
 
      if command_params[0] == "--createRepo"
-       p FileUtils.mkdir_p File.expand_path('~') + '/repository/' +  command_params[1]
+      file = File.expand_path('~') + '/repository/' +  command_params[1]
+       if File.exist? file
+         send_data "Repository #{command_params[1]} has already existed"
+         close_connection_after_writing
+         return
+       end
+
+       FileUtils.mkdir_p file                                                                                                                            l
+       send_data "Repository #{command_params[1]} is created successfully"
        close_connection_after_writing
        return
      end

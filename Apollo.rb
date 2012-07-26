@@ -2,6 +2,23 @@
 
 require "rubygems"
 require "eventmachine"
+require 'yaml'
+
+def write_config(name, value)
+  data = {name => value}
+  File.open(File.expand_path("~") + "/.apollo.yaml", "w") { |f| f.write(data.to_yaml) }
+end
+
+def read_config(name)
+  file = File.expand_path("~") + "/.apollo.yaml"
+  if File.exist? file
+    data = open(file) { |f| YAML.load(f) }
+    begin
+      data[name]
+    rescue => e
+    end
+  end
+end
 
 class RequestHandler < EventMachine::Connection
   attr_reader :args
@@ -14,13 +31,18 @@ class RequestHandler < EventMachine::Connection
     if @args[0] == "--addUser"
 
     else
-      send_data ENV["APOLLO_USER"] + "#" + @args.join(" ")
+      send_data read_config("APOLLO_USER") + "#" + @args.join(" ")
     end
   end
 
   def receive_data(data)
     puts data
   end
+
+  def unbind
+    EventMachine::stop_event_loop
+  end
+
 end
 
 def print_usage
@@ -47,12 +69,12 @@ def preprocess_args(args)
   end
 
   if args[0] != "--addUser"
-    if ENV['APOLLO_USER'].nil?
+    if read_config("APOLLO_USER").nil?
       puts "Error: please run --addUser first"
       return 0
     end
 
-    apollo_user = ENV['APOLLO_USER'].split(":")
+    apollo_user = read_config("APOLLO_USER").split(":")
     if apollo_user.length != 2
       puts "Error: please run --addUser to add a valid user"
       return 0
@@ -63,8 +85,7 @@ def preprocess_args(args)
     if args[1].split(":").length != 2
       puts "Error: please add a valid user and password pair <user name>:<password>"
     else
-      ENV["APOLLO_USER"] = args[1]
-      system({"APOLLO_USER" => args[1]}, "export $APOLLO_USER=$args[1]")
+      write_config("APOLLO_USER", args[1])
     end
     return 0
   end
@@ -81,4 +102,4 @@ def main(args)
   }
 end
 
-exit(main(ARGV))
+exit(main(ARGV) || 1)
