@@ -22,7 +22,7 @@ require 'fileutils'
        return
      end
 
-     command_params = request_params[1].split(" ")
+     command_params = request_params[1].split("*")
      if command_params.length != 2
        send_data "Invalid request"
        close_connection_after_writing
@@ -43,10 +43,27 @@ require 'fileutils'
          return
        end
 
-       FileUtils.mkdir_p file                                                                                                                            l
+       FileUtils.mkdir_p file
        send_data "Repository #{command_params[1]} is created successfully"
        close_connection_after_writing
        return
+     end
+
+     if command_params[0] == "--addSSH"
+       send_data "Initialized Nebula"
+       close_connection_after_writing
+
+       filename = File.expand_path("~") + "/.ssh/authorized_keys"
+
+       if File.exist? filename
+         data = File.read filename
+         if data.include? command_params[1]
+           return
+         end
+       end
+       File.open(filename, 'a') do |file|
+         file.puts command_params[1]
+       end
      end
 
      close_connection if data =~ /quit/i
@@ -59,5 +76,5 @@ end
 
 # Note that this will block current thread.
 EventMachine.run {
-  EventMachine.start_server "127.0.0.1", 8081, ApolloServer
+  EventMachine.start_server "0.0.0.0", 8081, ApolloServer
 }

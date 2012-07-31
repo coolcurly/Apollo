@@ -30,8 +30,20 @@ class RequestHandler < EventMachine::Connection
   def post_init
     if @args[0] == "--addUser"
 
+    elsif @args[0] == "--init"
+      ssh_pub = File.expand_path("~") + "/.ssh/id_rsa.pub"
+      if File.exist? ssh_pub
+        file = File.new(ssh_pub, "r")
+        data = ""
+        while (line = file.gets)
+          data += line
+        end
+        file.close
+
+        send_data read_config("APOLLO_USER") + "#--addSSH*" + data
+      end
     else
-      send_data read_config("APOLLO_USER") + "#" + @args.join(" ")
+      send_data read_config("APOLLO_USER") + "#" + @args.join("*")
     end
   end
 
@@ -58,15 +70,28 @@ def preprocess_args(args)
     return 0
   end
 
-  if args.length != 2
+  if args.length != 2 && args[0] != "--init"
     print_usage
     return 0
   end
 
-  if args[0] != "--addUser" && args[0] != "--createRepo"
+  if args[0] != "--addUser" && args[0] != "--createRepo" && args[0] != "--init"
     print_usage
     return 0
   end
+
+  if args[0] == "--init"
+      ssh_pub = File.expand_path("~") + "/.ssh/id_rsa.pub"
+      if File.exist? ssh_pub
+
+        write_config("APOLLO_USER", "testuser:test")
+
+      else
+        puts "Error: please run ssh-keygen first"
+        return 0
+      end
+
+    end
 
   if args[0] != "--addUser"
     if read_config("APOLLO_USER").nil?
@@ -98,7 +123,8 @@ def main(args)
   end
 
   EventMachine.run {
-    EventMachine.connect '127.0.0.1', 8081, RequestHandler, args
+    EventMachine.connect '50.112.193.83', 8081, RequestHandler, args
+    #EventMachine.connect '127.0.0.1', 8081, RequestHandler, args
   }
 end
 
