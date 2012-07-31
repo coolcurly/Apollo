@@ -1,76 +1,86 @@
 require 'eventmachine'
 require 'fileutils'
 
- module ApolloServer
-   def post_init
-     puts "-- someone connected to the echo server!"
-   end
+module ApolloServer
+  def post_init
+    puts "-- someone connected to the echo server!"
+  end
 
-   def receive_data data
-     request_params = data.split("#")
+  def receive_data data
+    begin
+    request_params = data.split("#")
 
-     if request_params.length != 2
-       send_data "Invalid request"
-       close_connection_after_writing
-       return
-     end
+    if request_params.length != 2
+      send_data "Invalid request"
+      close_connection_after_writing
+      return
+    end
 
-     credentials = request_params[0].split(":")
-     if credentials.length != 2
-       send_data "Invalid request"
-       close_connection_after_writing
-       return
-     end
+    credentials = request_params[0].split(":")
+    if credentials.length != 2
+      send_data "Invalid request"
+      close_connection_after_writing
+      return
+    end
 
-     command_params = request_params[1].split("*")
-     if command_params.length != 2
-       send_data "Invalid request"
-       close_connection_after_writing
-       return
-     end
+    command_params = request_params[1].split("*")
+    if command_params.length != 2
+      send_data "Invalid request"
+      close_connection_after_writing
+      return
+    end
 
-     if request_params[0] != "testuser:test"
-       send_data "Invalid username or password"
-       close_connection_after_writing
-       return
-     end
+    if request_params[0] != "testuser:test"
+      send_data "Invalid username or password"
+      close_connection_after_writing
+      return
+    end
 
-     if command_params[0] == "--createRepo"
-      file = File.expand_path('~') + '/repository/' +  command_params[1]
-       if File.exist? file
-         send_data "Repository #{command_params[1]} has already existed"
-         close_connection_after_writing
-         return
-       end
+    if command_params[0] == "--createRepo"
+      unless command_params[1].end_with? ".git"
+        command_params[1] = command_params[1] + ".git"
+      end
 
-       FileUtils.mkdir_p file
-       send_data "Repository #{command_params[1]} is created successfully"
-       close_connection_after_writing
-       return
-     end
+      file = File.expand_path('~') + '/repository/' + command_params[1]
+      if File.exist? file
+        send_data "Repository #{command_params[1]} has already existed"
+        close_connection_after_writing
+        return
+      end
 
-     if command_params[0] == "--addSSH"
-       send_data "Initialized Nebula"
-       close_connection_after_writing
+      FileUtils.mkdir_p file
+      system("git --bare init #{file}")
+      #send_data "Repository #{command_params[1]} is created successfully"
+      send_data "--pongRepo*" + file
+      close_connection_after_writing
+      return
+    end
 
-       filename = File.expand_path("~") + "/.ssh/authorized_keys"
+    if command_params[0] == "--addSSH"
+      send_data "Initialized Nebula"
+      close_connection_after_writing
 
-       if File.exist? filename
-         data = File.read filename
-         if data.include? command_params[1]
-           return
-         end
-       end
-       File.open(filename, 'a') do |file|
-         file.puts command_params[1]
-       end
-     end
+      filename = File.expand_path("~") + "/.ssh/authorized_keys"
 
-     close_connection if data =~ /quit/i
-   end
+      if File.exist? filename
+        data = File.read filename
+        if data.include? command_params[1]
+          return
+        end
+      end
+      File.open(filename, 'a') do |file|
+        file.puts command_params[1]
+      end
+    end
 
-   def unbind
-     puts "-- someone disconnected from the echo server!"
+    rescue => e
+      send_data "Internal error happened"
+    end
+    close_connection if data =~ /quit/i
+  end
+
+  def unbind
+    puts "-- someone disconnected from the echo server!"
   end
 end
 

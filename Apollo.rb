@@ -48,7 +48,17 @@ class RequestHandler < EventMachine::Connection
   end
 
   def receive_data(data)
-    puts data
+    response = data.split("*")
+    if response.length == 2
+      if response[0] == "--pongRepo"
+        if system("git remote add nebula ssh://ubuntu@ec2-50-112-193-83.us-west-2.compute.amazonaws.com#{response[1]}")
+          puts "Repository is created successfully"
+        end
+      end
+    else
+      puts data
+    end
+
   end
 
   def unbind
