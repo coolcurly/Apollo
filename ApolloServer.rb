@@ -2,6 +2,20 @@ require 'eventmachine'
 require 'fileutils'
 
 module ApolloServer
+  @@post_receive = "
+  #!/bin/sh
+  echo Source code has been trasmitted successfully
+  GIT_WORK_TREE=/home/ubuntu/www/%s/%s
+  export GIT_WORK_TREE
+  git checkout -f
+  export port = `ruby ~/Apollo/launchy.rb`
+  if [ $port != 0 ]
+  then
+    node $GIT_WORK_TREE/app.js
+  else
+    echo Error: launchy returns an unexpected result.
+  fi
+"
   def post_init
     puts "-- someone connected to the echo server!"
   end
@@ -38,12 +52,12 @@ module ApolloServer
 
     if command_params[0] == "--createRepo"
       unless command_params[1].end_with? ".git"
-        command_params[1] = command_params[1] + ".git"
+        git_repo = command_params[1] + ".git"
       end
 
-      file = File.expand_path('~') + '/repository/' + command_params[1]
+      file = File.expand_path('~') + '/repository/' + git_repo
       if File.exist? file
-        send_data "Repository #{command_params[1]} has already existed"
+        send_data "Repository #{git_repo} has already existed"
         close_connection_after_writing
         return
       end
@@ -51,6 +65,15 @@ module ApolloServer
       FileUtils.mkdir_p file
       system("git --bare init #{file}")
       #send_data "Repository #{command_params[1]} is created successfully"
+      work_tree = "/home/ubuntu/www/#{credentials[0]}/#{command_params[1]}"
+      unless File.exist? work_tree
+        FileUtils.mkdir_p work_tree
+      end
+
+      File.open(file + '/hooks/post-receive', 'w') do |f|
+        f.puts @@post_receive % [credentials[0], command_params[1]]
+      end
+
       send_data "--pongRepo*" + file
       close_connection_after_writing
       return
@@ -74,7 +97,9 @@ module ApolloServer
     end
 
     rescue => e
+      puts e
       send_data "Internal error happened"
+      close_connection_after_writing
     end
     close_connection if data =~ /quit/i
   end

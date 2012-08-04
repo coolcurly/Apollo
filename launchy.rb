@@ -1,6 +1,4 @@
 #!/usr/bin/ruby
-
-
 require "sqlite3"
 require "fileutils"
 
@@ -58,10 +56,6 @@ def generate_subdomain
 
     return subdomain_name
 
-    #unless rs == 1
-    #  db.execute "INSERT INTO #{@instance_table}(subdomain_name) VALUES('#{subdomain_name}')"
-    #end
-
   else
     raise "Cannot find dictionary files '#{@adj_file}' and '#{@noun_file}'"
   end
@@ -89,29 +83,35 @@ def write_nginx_config(instance_url, domain_name, port)
   end
 end
 
+def pre_launch(args)
+  if args.length != 3
+    raise "Please pass in 'user name', 'instance name' and 'instance address' as parameters"
+  end
+  user_name, instance_name, url = args[0], args[1], args[2]
+
+  @db = open_db
+
+  rs = @db.execute "SELECT port FROM #{@instance_table} WHERE url='#{url}'"
+
+  if rs.length > 0
+    return rs[0][0]
+  end
+
+  port = get_port
+  subdomain_name = generate_subdomain
+
+  write_nginx_config(url, "#{subdomain_name}.#{@base_domain}", port)
+
+  @db.execute "INSERT INTO #{@instance_table} VALUES('#{user_name}', '#{instance_name}', '#{url}', '#{subdomain_name}', '#{port}')"
+
+  return port
+end
+
 def main(args)
   begin
-    if args.length != 3
-      raise "Please pass in 'user name', 'instance name' and 'instance address' as parameters"
-    end
-    user_name, instance_name, url = args[0], args[1], args[2]
+    port = pre_launch(args)
+    env["WEB_PORT"] = port
 
-    @db = open_db
-
-    rs = @db.execute "SELECT port FROM #{@instance_table} WHERE url='#{url}'"
-
-    if rs.length > 0
-      return rs[0][0]
-    end
-
-    port = get_port
-    subdomain_name = generate_subdomain
-
-    write_nginx_config(url, "#{subdomain_name}.#{@base_domain}", port)
-
-    @db.execute "INSERT INTO #{@instance_table} VALUES('#{user_name}', '#{instance_name}', '#{url}', '#{subdomain_name}', '#{port}')"
-
-    return port
   rescue => e
     puts "Error: #{e}"
   end
