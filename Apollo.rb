@@ -51,7 +51,7 @@ class RequestHandler < EventMachine::Connection
     response = data.split("*")
     if response.length == 2
       if response[0] == "--pongRepo"
-        if system("git remote add nebula ssh://ubuntu@ec2-50-112-254-53.us-west-2.compute.amazonaws.com#{response[1]}")
+        if system("git remote add nebula ssh://ubuntu@nebulatec.us#{response[1]}")
           puts "Repository is created successfully"
         end
       end

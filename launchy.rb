@@ -1,14 +1,13 @@
-#!/usr/bin/ruby
 require "sqlite3"
 require "fileutils"
 
-@adj_file = "./adjectives"
-@noun_file = "./nouns"
-@db_file = "./nebula.sqlite"
+@adj_file = File.expand_path('~') + "/nebula/adjectives"
+@noun_file = File.expand_path('~') + "/nebula/nouns"
+@db_file = File.expand_path('~') + "/nebula/nebula.sqlite"
 @instance_table = "instance"
 @base_port = 3000
 #@nginx_config_file = "/etc/nginx/sites-enabled/default"
-@nginx_config_file = "./test"
+@nginx_config_file = File.expand_path('~') + "/nebula/test"
 @base_domain = "nebulatec.us"
 @server_template = "#Instance: %s
 server {

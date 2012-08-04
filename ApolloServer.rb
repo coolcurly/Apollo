@@ -2,19 +2,19 @@ require 'eventmachine'
 require 'fileutils'
 
 module ApolloServer
-  @@post_receive = "
-  #!/bin/sh
-  echo Source code has been trasmitted successfully
-  GIT_WORK_TREE=/home/ubuntu/www/%s/%s
-  export GIT_WORK_TREE
-  git checkout -f
-  export port = `ruby ~/Apollo/launchy.rb`
-  if [ $port != 0 ]
-  then
-    node $GIT_WORK_TREE/app.js
-  else
-    echo Error: launchy returns an unexpected result.
-  fi
+  @@post_receive =
+"#!/bin/sh
+echo Source code has been trasmitted successfully
+GIT_WORK_TREE=/home/ubuntu/www/%s/%s
+export GIT_WORK_TREE
+git checkout -f
+port=$(ruby ~/nebula/launchy.rb %s %s %s)
+if [ \"$port\" = 0 ]
+then
+  echo Error: launchy returns an unexpected result.
+else
+  node $GIT_WORK_TREE/app.js
+fi
 "
   def post_init
     puts "-- someone connected to the echo server!"
@@ -70,9 +70,12 @@ module ApolloServer
         FileUtils.mkdir_p work_tree
       end
 
-      File.open(file + '/hooks/post-receive', 'w') do |f|
-        f.puts @@post_receive % [credentials[0], command_params[1]]
+      post_receive = file + '/hooks/post-receive'
+      File.open(post_receive, 'w') do |f|
+        f.puts @@post_receive % [credentials[0], command_params[1], credentials[0], command_params[1], work_tree]
       end
+
+      system("chmod +x #{post_receive}")
 
       send_data "--pongRepo*" + file
       close_connection_after_writing
