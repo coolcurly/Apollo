@@ -1,3 +1,4 @@
+require "rubygems"
 require "sqlite3"
 require "fileutils"
 
@@ -6,15 +7,15 @@ require "fileutils"
 @db_file = File.expand_path('~') + "/nebula/nebula.sqlite"
 @instance_table = "instance"
 @base_port = 3000
-#@nginx_config_file = "/etc/nginx/sites-enabled/default"
-@nginx_config_file = File.expand_path('~') + "/nebula/test"
+@nginx_config_file = "/etc/nginx/sites-enabled/default"
+#@nginx_config_file = File.expand_path('~') + "/nebula/test"
 @base_domain = "nebulatec.us"
 @server_template = "#Instance: %s
 server {
   listen  80;
   server_name %s;
   location / {
-    proxy_pass: http://127.0.0.1:%s;
+    proxy_pass http://127.0.0.1:%s;
   }
 }"
 
@@ -48,7 +49,7 @@ def generate_subdomain
       j = Random.new.rand(0..noun_words.length-1)
 
       subdomain_name = "#{adj_words[i]}_#{noun_words[j]}"
-      puts subdomain_name
+      #puts subdomain_name
       rs = @db.execute "SELECT COUNT(*) FROM #{@instance_table} WHERE subdomain_name='#{subdomain_name}'"
 
     end while rs[0][0] == 1
@@ -90,10 +91,10 @@ def pre_launch(args)
 
   @db = open_db
 
-  rs = @db.execute "SELECT port FROM #{@instance_table} WHERE url='#{url}'"
+  rs = @db.execute "SELECT port, subdomain_name FROM #{@instance_table} WHERE url='#{url}'"
 
   if rs.length > 0
-    return rs[0][0]
+    return rs[0][0], "#{rs[0][1]}.#{@base_domain}"
   end
 
   port = get_port
@@ -103,14 +104,15 @@ def pre_launch(args)
 
   @db.execute "INSERT INTO #{@instance_table} VALUES('#{user_name}', '#{instance_name}', '#{url}', '#{subdomain_name}', '#{port}')"
 
-  return port
+  return port, "#{subdomain_name}.#{@base_domain}"
 end
 
 def main(args)
   begin
-    port = pre_launch(args)
-    env["WEB_PORT"] = port
-
+    port, domain_name = pre_launch(args)
+    ENV[ "WEB_PORT" ] = port.to_s
+    puts "#{port}##{domain_name}"
+    return 1
   rescue => e
     puts "Error: #{e}"
   end

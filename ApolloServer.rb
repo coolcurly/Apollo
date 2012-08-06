@@ -3,19 +3,42 @@ require 'fileutils'
 
 module ApolloServer
   @@post_receive =
-"#!/bin/sh
-echo Source code has been trasmitted successfully
+"#!/bin/bash -l
+echo source code has been trasmitted successfully
 GIT_WORK_TREE=/home/ubuntu/www/%s/%s
 export GIT_WORK_TREE
+echo checking code out to deployment folder
 git checkout -f
-port=$(ruby ~/nebula/launchy.rb %s %s %s)
-if [ \"$port\" = 0 ]
+if [ -f $GIT_WORK_TREE/package.json ];
+then
+  echo installing dependencies
+  cd $GIT_WORK_TREE
+  sudo npm install
+fi
+echo allocating resources
+rs=$(ruby ~/nebula/launchy.rb %s %s %s)
+rs_splitted=$(echo $rs | tr \"#\" \"\n\")
+i=0
+for x in $rs_splitted
+do
+  rs_array[$i]=$x
+  let \"i += 1\"
+done
+
+if [ \"${#rs_array[@]}\" = 1 ]
 then
   echo Error: launchy returns an unexpected result.
 else
-  node $GIT_WORK_TREE/app.js
+  export WEB_PORT=${rs_array[0]}
+  echo starting instance
+  node $GIT_WORK_TREE/app.js > /dev/null &
+  echo starting web server
+  sudo /etc/init.d/nginx restart > /dev/null &
+  echo The repository has been deployed to http://${rs_array[1]}
+  exit 1
 fi
 "
+
   def post_init
     puts "-- someone connected to the echo server!"
   end
