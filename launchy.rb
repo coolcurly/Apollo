@@ -48,7 +48,7 @@ def generate_subdomain
       i = Random.new.rand(0..adj_words.length-1)
       j = Random.new.rand(0..noun_words.length-1)
 
-      subdomain_name = "#{adj_words[i]}_#{noun_words[j]}"
+      subdomain_name = "#{adj_words[i]}-#{noun_words[j]}"
       #puts subdomain_name
       rs = @db.execute "SELECT COUNT(*) FROM #{@instance_table} WHERE subdomain_name='#{subdomain_name}'"
 
