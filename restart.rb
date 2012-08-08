@@ -21,7 +21,8 @@ def kill_process(port)
 end
 
 def main(args)
-  subdomain = args[0]
+  full_domain, kill = args[0], args[1]
+  subdomain = full_domain.split('.').first
   begin
     db = SQLite3::Database.open @db_file
     rs = db.execute "SELECT port, url FROM #{@instance_table} WHERE subdomain_name='#{subdomain}'"
@@ -32,6 +33,10 @@ def main(args)
     port, url = rs[0][0], rs[0][1]
 
     kill_process port
+
+    if kill == "k"
+      return 1
+    end
 
     if system("export WEB_PORT=#{port}; node #{url}/app.js &> /dev/null &")
       puts 1

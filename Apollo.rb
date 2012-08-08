@@ -71,6 +71,7 @@ def print_usage
   puts 'Usage:'
   puts "--addUser <user name>:<password>"
   puts "--createRepo <repository name>"
+  puts "--resetUrl <old url>=<new url>"
 end
 
 def preprocess_args(args)
@@ -85,7 +86,7 @@ def preprocess_args(args)
     return 0
   end
 
-  if args[0] != "--addUser" && args[0] != "--createRepo" && args[0] != "--init"
+  if args[0] != "--addUser" && args[0] != "--createRepo" && args[0] != "--init" && args[0] != "--resetUrl"
     print_usage
     return 0
   end

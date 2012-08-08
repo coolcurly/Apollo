@@ -31,6 +31,7 @@ then
 else
   export WEB_PORT=${rs_array[0]}
   echo starting instance
+  ruby ~/nebula/restart.rb ${rs_array[1] k
   node $GIT_WORK_TREE/app.js &> /dev/null &
   echo starting web server
   sudo /etc/init.d/nginx restart > /dev/null &
@@ -44,6 +45,7 @@ fi
   end
 
   def receive_data data
+    puts "=====>#{data}"
     begin
     request_params = data.split("#")
 
@@ -121,6 +123,17 @@ fi
         file.puts command_params[1]
       end
     end
+
+      if command_params[0] == "--resetUrl"
+        puts command_params[1]
+        domains = command_params[1].split('=')
+        if system("ruby ~/nebula/reset_url.rb #{domains[0]} #{domains[1]}")
+          send_data "Reset url from #{domains[0]} to #{domains[1]} successfully"
+        else
+          send_data "Failed to reset url from #{domains[0]} to #{domains[1]} "
+        end
+        close_connection_after_writing
+      end
 
     rescue => e
       puts e
