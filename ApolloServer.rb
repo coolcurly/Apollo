@@ -31,7 +31,7 @@ then
 else
   export WEB_PORT=${rs_array[0]}
   echo starting instance
-  ruby ~/nebula/restart.rb ${rs_array[1] k
+  ruby ~/nebula/restart.rb ${rs_array[1]} k
   node $GIT_WORK_TREE/app.js &> /dev/null &
   echo starting web server
   sudo /etc/init.d/nginx restart > /dev/null &
